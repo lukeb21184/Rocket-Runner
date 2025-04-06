@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Dodge</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            touch-action: manipulation;
+            background-image: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+        
+        #game-container {
+            position: relative;
+            width: 90vmin;
+            height: 150vmin;
+            max-width: 500px;
+            max-height: 800px;
+            background-color: #000033;
+            overflow: hidden;
+            border: 2px solid #444;
+            box-shadow: 0 0 20px #0066ff;
+        }
+        
+        #space {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, transparent 0%, #000033 100%),
+                radial-gradient(circle at 80% 70%, transparent 0%, #000033 100%);
+        }
+        
+        #player-rocket {
+            position: absolute;
+            width: 8%;
+            height: 12%;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: linear-gradient(to bottom, #ff3300 0%, #ff6600 100%);
+            border-radius: 50% 50% 20% 20%/60% 60% 40% 40%;
+            box-shadow: 0 0 15px #ff6600;
+        }
+        
+        #player-rocket::before {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 40%;
+            bottom: -20%;
+            left: 35%;
+            background: linear-gradient(to bottom, #ffcc00 0%, #ff6600 100%);
+            border-radius: 50% 50% 0 0;
+            z-index: -1;
+        }
+        
+        #player-rocket::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 10%;
+            top: 15%;
+            left: 20%;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 5px;
+        }
+        
+        .falling-star {
+            position: absolute;
+            z-index: 5;
+            background: radial-gradient(circle at center, #fff 0%, #66ccff 70%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 10px #66ccff;
+            transform: rotate(45deg);
+        }
+        
+        .falling-star::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #fff 0%, transparent 70%);
+            border-radius: 50%;
+            animation: twinkle 0.5s infinite alternate;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #66ccff;
+            font-size: 2vmin;
+            z-index: 20;
+            text-shadow: 0 0 5px #0066ff;
+        }
+        
+        #level {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #66ccff;
+            font-size: 2vmin;
+            z-index: 20;
+            text-shadow: 0 0 5px #0066ff;
+        }
+        
+        #high-score {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffcc00;
+            font-size: 2vmin;
+            z-index: 20;
+            text-shadow: 0 0 5px #ff6600;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 51, 0.8);
+            color: #66ccff;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-shadow: 0 0 5px #0066ff;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 51, 0.8);
+            color: #66ccff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-shadow: 0 0 5px #0066ff;
+        }
+        
+        #level-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 51, 0.8);
+            color: #66ccff;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-shadow: 0 0 5px #0066ff;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 2vmin;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-shadow: none;
+            box-shadow: 0 0 10px #0066ff;
+        }
+        
+        button:hover {
+            background-color: #0055cc;
+            box-shadow: 0 0 15px #0066ff;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 10%;
+            z-index: 40;
+        }
+        
+        .control-btn {
+            width: 15vmin;
+            height: 15vmin;
+            max-width: 80px;
+            max-height: 80px;
+            background-color: rgba(102, 204, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 6vmin;
+            user-select: none;
+            touch-action: manipulation;
+            box-shadow: 0 0 10px #66ccff;
+        }
+        
+        h1 {
+            font-size: 4vmin;
+            text-align: center;
+        }
+        
+        p {
+            font-size: 2.5vmin;
+            text-align: center;
+        }
+        
+        #new-high-score {
+            color: #ffcc00;
+            font-size: 3vmin;
+            text-shadow: 0 0 10px #ff6600;
+            display: none;
+            margin-top: 10px;
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="space"></div>
+        <div id="player-rocket"></div>
+        <div id="score">Score: 0</div>
+        <div id="level">Level: 1</div>
+        <div id="high-score">High Score: 0</div>
+        
+        <div class="controls">
+            <div class="control-btn" id="left-btn">←</div>
+            <div class="control-btn" id="right-btn">→</div>
+        </div>
+        
+        <div id="start-screen">
+            <h1>Rocket Dodge</h1>
+            <p>Navigate through falling stars</p>
+            <p>Use arrows or buttons to move</p>
+            <p id="high-score-display">High Score: 0</p>
+            <button id="start-button">Start Game</button>
+        </div>
+        
+        <div id="level-screen">
+            <h1 id="level-title">Level Complete!</h1>
+            <p id="level-score">Score: 0</p>
+            <button id="next-level-button">Next Level</button>
+        </div>
+        
+        <div id="game-over">
+            <h1>Game Over</h1>
+            <p id="final-score">Score: 0</p>
+            <p id="final-level">Level: 1</p>
+            <p id="final-high-score">High Score: 0</p>
+            <div id="new-high-score">NEW HIGH SCORE!</div>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const playerRocket = document.getElementById('player-rocket');
+        const gameContainer = document.getElementById('game-container');
+        const space = document.getElementById('space');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const highScoreElement = document.getElementById('high-score');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const gameOverScreen = document.getElementById('game-over');
+        const startScreen = document.getElementById('start-screen');
+        const levelScreen = document.getElementById('level-screen');
+        const finalScoreElement = document.getElementById('final-score');
+        const finalLevelElement = document.getElementById('final-level');
+        const finalHighScoreElement = document.getElementById('final-high-score');
+        const newHighScoreElement = document.getElementById('new-high-score');
+        const levelTitle = document.getElementById('level-title');
+        const levelScore = document.getElementById('level-score');
+        const startButton = document.getElementById('start-button');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const restartButton = document.getElementById('restart-button');
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+        
+        // Game state
+        let score = 0;
+        let level = 1;
+        let baseSpeed = 1;
+        let gameRunning = false;
+        let fallingStars = [];
+        let animationId;
+        let playerX = 50; // Percentage of container width
+        let moveDirection = 0; // -1 for left, 1 for right, 0 for none
+        let lastSpawnTime = 0;
+        let spawnRate = 1500; // ms between spawns
+        let speedIncreasePerLevel = 0.3;
+        let highScore = localStorage.getItem('rocketDodgeHighScore') || 0;
+        
+        // Initialize high score display
+        highScoreElement.textContent = `High Score: ${highScore}`;
+        highScoreDisplay.textContent = `High Score: ${highScore}`;
+        finalHighScoreElement.textContent = `High Score: ${highScore}`;
+        
+        // Event listeners for keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                moveDirection = -1;
+            } else if (e.key === 'ArrowRight') {
+                moveDirection = 1;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if ((e.key === 'ArrowLeft' && moveDirection === -1) || 
+                (e.key === 'ArrowRight' && moveDirection === 1)) {
+                moveDirection = 0;
+            }
+        });
+        
+        // Touch controls for mobile
+        leftBtn.addEventListener('touchstart', () => moveDirection = -1);
+        leftBtn.addEventListener('touchend', () => moveDirection = 0);
+        leftBtn.addEventListener('mousedown', () => moveDirection = -1);
+        leftBtn.addEventListener('mouseup', () => moveDirection = 0);
+        leftBtn.addEventListener('mouseleave', () => moveDirection = 0);
+        
+        rightBtn.addEventListener('touchstart', () => moveDirection = 1);
+        rightBtn.addEventListener('touchend', () => moveDirection = 0);
+        rightBtn.addEventListener('mousedown', () => moveDirection = 1);
+        rightBtn.addEventListener('mouseup', () => moveDirection = 0);
+        rightBtn.addEventListener('mouseleave', () => moveDirection = 0);
+        
+        // Start game button
+        startButton.addEventListener('click', startGame);
+        nextLevelButton.addEventListener('click', startNextLevel);
+        restartButton.addEventListener('click', startGame);
+        
+        function startGame() {
+            // Reset game state
+            score = 0;
+            level = 1;
+            baseSpeed = 1;
+            spawnRate = 1500;
+            scoreElement.textContent = `Score: ${score}`;
+            levelElement.textContent = `Level: ${level}`;
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'none';
+            levelScreen.style.display = 'none';
+            newHighScoreElement.style.display = 'none';
+            
+            // Clear any existing falling stars
+            fallingStars.forEach(star => {
+                if (star.element.parentNode) {
+                    space.removeChild(star.element);
+                }
+            });
+            fallingStars = [];
+            
+            // Reset player position
+            playerX = 50;
+            updatePlayerPosition();
+            
+            gameRunning = true;
+            lastSpawnTime = performance.now();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        function startNextLevel() {
+            level++;
+            baseSpeed += speedIncreasePerLevel;
+            spawnRate = Math.max(500, spawnRate - 100); // Faster spawns but with a minimum
+            scoreElement.textContent = `Score: ${score}`;
+            levelElement.textContent = `Level: ${level}`;
+            levelScreen.style.display = 'none';
+            
+            // Clear any existing falling stars
+            fallingStars.forEach(star => {
+                if (star.element.parentNode) {
+                    space.removeChild(star.element);
+                }
+            });
+            fallingStars = [];
+            
+            gameRunning = true;
+            lastSpawnTime = performance.now();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        function updatePlayerPosition() {
+            playerRocket.style.left = `${playerX}%`;
+        }
+        
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+            
+            // Move player rocket
+            const moveSpeed = 1;
+            if (moveDirection === -1 && playerX > 10) {
+                playerX -= moveSpeed;
+            } else if (moveDirection === 1 && playerX < 90) {
+                playerX += moveSpeed;
+            }
+            updatePlayerPosition();
+            
+            // Spawn falling stars at controlled intervals
+            if (timestamp - lastSpawnTime > spawnRate) {
+                spawnFallingStar();
+                lastSpawnTime = timestamp;
+            }
+            
+            // Move all falling stars
+            moveFallingStars();
+            
+            // Check for collisions
+            if (checkCollision()) {
+                gameOver();
+                return;
+            }
+            
+            // Increase score based on level
+            score += Math.floor(baseSpeed);
+            scoreElement.textContent = `Score: ${score}`;
+            
+            // Update high score display if current score exceeds it
+            if (score > highScore) {
+                highScoreElement.textContent = `High Score: ${score}`;
+            }
+            
+            // Check level completion (every 1000 points)
+            if (score >= level * 1000) {
+                levelComplete();
+                return;
+            }
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        function spawnFallingStar() {
+            const star = document.createElement('div');
+            star.className = 'falling-star';
+            
+            // Random size (3-8% of container width)
+            const size = 3 + Math.random() * 5;
+            star.style.width = `${size}%`;
+            star.style.height = `${size}%`;
+            
+            // Random horizontal position
+            const posX = 10 + Math.random() * 80;
+            star.style.left = `${posX}%`;
+            star.style.top = `-${size}%`;
+            
+            // Random speed variation
+            const speed = baseSpeed * (0.8 + Math.random() * 0.4);
+            
+            space.appendChild(star);
+            fallingStars.push({
+                element: star,
+                speed: speed,
+                size: size
+            });
+            
+            // Add twinkling animation
+            star.style.animation = `twinkle ${0.3 + Math.random() * 0.4}s infinite alternate`;
+        }
+        
+        function moveFallingStars() {
+            const spaceHeight = space.offsetHeight;
+            
+            for (let i = fallingStars.length - 1; i >= 0; i--) {
+                const star = fallingStars[i];
+                const starElement = star.element;
+                const currentTop = parseFloat(starElement.style.top);
+                const newTop = currentTop + star.speed;
+                
+                starElement.style.top = `${newTop}%`;
+                
+                // Remove stars that are off screen
+                if (newTop > 100) {
+                    space.removeChild(starElement);
+                    fallingStars.splice(i, 1);
+                }
+            }
+        }
+        
+        function checkCollision() {
+            const playerRect = playerRocket.getBoundingClientRect();
+            
+            for (const star of fallingStars) {
+                const starRect = star.element.getBoundingClientRect();
+                
+                // Simple collision detection
+                const collision = !(
+                    playerRect.right < starRect.left || 
+                    playerRect.left > starRect.right || 
+                    playerRect.bottom < starRect.top || 
+                    playerRect.top > starRect.bottom
+                );
+                
+                if (collision) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function levelComplete() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            levelTitle.textContent = `Level ${level} Complete!`;
+            levelScore.textContent = `Score: ${score}`;
+            levelScreen.style.display = 'flex';
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            
+            // Check for new high score
+            let isNewHighScore = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('rocketDodgeHighScore', highScore);
+                isNewHighScore = true;
+            }
+            
+            // Update display
+            finalScoreElement.textContent = `Score: ${score}`;
+            finalLevelElement.textContent = `Level: ${level}`;
+            finalHighScoreElement.textContent = `High Score: ${highScore}`;
+            
+            // Show new high score message if applicable
+            if (isNewHighScore) {
+                newHighScoreElement.style.display = 'block';
+            } else {
+                newHighScoreElement.style.display = 'none';
+            }
+            
+            gameOverScreen.style.display = 'flex';
+            
+            // Update high score displays
+            highScoreElement.textContent = `High Score: ${highScore}`;
+            highScoreDisplay.textContent = `High Score: ${highScore}`;
+        }
+    </script>
+</body>
+</html>
